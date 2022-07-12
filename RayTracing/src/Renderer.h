@@ -1,6 +1,8 @@
 #pragma once
 #include "Walnut/Image.h"
 #include "Walnut/Random.h" 
+
+#include <glm/glm.hpp>
 #include <memory>
 
 
@@ -14,6 +16,8 @@ public:
 	void OnResize(uint32_t width, uint32_t height);
 	void Render();
 	std::shared_ptr<Walnut::Image> GetFinalImage() const { return finalImage; }
+private:
+	uint32_t PerPixel(glm::vec2 coord);
 private:
 	/*	i may have more than one image at the same time in 
 		the pipeline, so it will be clear that it is the final buffer*/
