@@ -57,21 +57,54 @@ void Renderer::Render() {
 	finalImage->SetData(imageData);
 }
 
+
 /*	this method will form the basis of how i decide where
 	to shoot my rays from the camera to see if they intersect
 	with the objects in the scene	*/
 uint32_t Renderer::PerPixel(glm::vec2 coord) {
-	uint8_t redChannel = (uint8_t)abs((coord.x * 255.0f));
-	uint8_t greenChannel = (uint8_t)abs((coord.y * 255.0f));
-	
 	glm::vec3 rayDirection(coord.x, coord.y, -1.0f);	//	-1 is just a convention for now
 	glm::vec3 rayOrigin(0.0f, 0.0f, 2.0f);	//	camera position
 	float radius = 0.5f;
 
-	rayDirection = glm::normalize(rayDirection);;
+	rayDirection = glm::normalize(rayDirection);	//	creates a unit vector
 
+	std::list<float>* intersections = hit_sphere(radius, rayOrigin, rayDirection);
+	if (intersections->empty()) {
+		return 0xff000000;
+	}
+
+	glm::vec3 entry = rayOrigin + intersections->front() * rayDirection;
+	glm::vec3 ref(0, 0, -1);
+	glm::vec3 tmp(entry - ref);
+	auto N = glm::normalize(tmp);
+
+	delete intersections;
+	
+	uint8_t alpha = (0xff);
+	uint8_t red = (uint8_t)(N.x + 1);
+	uint8_t green = (uint8_t)(N.y + 1);
+	uint8_t blue = (uint8_t)(N.z + 1);
+	//return 0xff000000 | (uint8_t)(0.0f * x) | (uint8_t)(255.0f * y) | (uint8_t)(0.0f * z);
+	//return RGBAtoHEX(alpha, red, green, blue);
+	//return 0xffffffff;
+	float t = 0.5f * (rayDirection.y + 1);
+
+	//return 0xffffffff;
+
+	float left = (1 - t) * RGBAtoHEX(1, 1, 1, 1);
+	float right = t * RGBAtoHEX(5, 7, 10, 1);
+	return (uint32_t)(left + right);
+
+	//return (uint32_t)((1 - t) * RGBAtoHEX(1, 1, 1, 1) + t * RGBAtoHEX(5, 7, 10, 1));
+	//return 0.5f * (RGBAtoHEX(alpha, red, green, blue));
+	//return RGBAtoHEX(255, 99, 71, 0);
+}
+
+
+std::list<float>* Renderer::hit_sphere(float radius, const glm::vec3& rayOrigin, const glm::vec3& rayDirection) {
+	std::list<float>* intersections = new std::list<float>;
 	/*	sphere equation:
-			-	t^2*(bx^2+by^2 + bz^2) + t(2(axbx + ayby + azbz)) + (ax^2 + ay^2 + az^2 - r^2) = 0	
+			-	t^2*(bx^2+by^2 + bz^2) + t(2(axbx + ayby + azbz)) + (ax^2 + ay^2 + az^2 - r^2) = 0
 		a	-	ray origin
 		b	-	ray direction
 		r	-	radius of the sphere
@@ -86,24 +119,38 @@ uint32_t Renderer::PerPixel(glm::vec2 coord) {
 		intersectios equation:
 			-	(-e +- sqrt(delta)) / (2.0f * d)
 	*/
-
-	//	glm::dot(x, y)	-	'iloczyn skalarny' x * y
-	//	float tSqCoeff = rayDirection.x*rayDirection.x + rayDirection.y*rayDirection.y + rayDirection.z*rayDirection.z;	//	does the same thing as the line below
-	float tSqCoeff = glm::dot(rayDirection, rayDirection);	
+	/*glm::dot(x, y) - 'iloczyn skalarny' x * y
+	float tSqCoeff = rayDirection.x*rayDirection.x + rayDirection.y*rayDirection.y + rayDirection.z*rayDirection.z;	//	does the same thing as the line below	*/
+	float tSqCoeff = glm::dot(rayDirection, rayDirection);
 	float tCoeff = 2.0f * glm::dot(rayOrigin, rayDirection);
 	float volatilePart = glm::dot(rayOrigin, rayOrigin) - radius * radius;
 
 	float delta = tCoeff * tCoeff - 4.0f * tSqCoeff * volatilePart;
 	if (delta >= 0.0f) {
-		float intersection1 = (-tCoeff - sqrt(delta)) / (2.0f * tSqCoeff);
-		float intersection2 = (-tCoeff + sqrt(delta)) / (2.0f * tSqCoeff);
+		float entryPoint = (-tCoeff - sqrt(delta)) / (2.0f * tSqCoeff);
+		float exitPoint = (-tCoeff + sqrt(delta)) / (2.0f * tSqCoeff);
 
-		auto a = (rayOrigin + rayDirection * intersection1) - glm::vec3(0, 0, -1);
-		auto b = (rayOrigin + rayDirection * intersection2) - glm::vec3(0, 0, -1);
-		
-		return 0xff000000 | (uint8_t)(255.0f * a.y) | (uint8_t)(255.0f * a.x) | (uint8_t)(255.0f * a.z);
-		//return 0xff000000 | (greenChannel << 8) | redChannel;
+		intersections->push_back(entryPoint);
+		intersections->push_back(exitPoint);
+		/*
+		//auto a = (rayOrigin + rayDirection * intersection1) - glm::vec3(0, 0, -1);
+		//auto b = (rayOrigin + rayDirection * intersection2) - glm::vec3(0, 0, -1);
+
+		//auto t = 0.5f * (rayDirection.y + 1.0f);
+		//auto g = (1.0f - t) * glm::vec3(1.0, 1.0, 1.0);
+		//auto r = t * glm::vec3(0.5, 0.7, 1.0);
+		//auto combined = g + r;
+
+		//return 0xff000000 | (uint8_t)combined.x | (uint8_t)combined.y | (uint8_t)combined.z;
+		//return 0xff000000 | (uint8_t)(255.0f * a.y) | (uint8_t)(255.0f * a.x) | (uint8_t)(255.0f * a.z);
+		//return 0xff000000 | (greenChannel << 8) | redChannel;*/
 	}
-	return 0xff000000;
+	return intersections;
 }
 
+
+uint32_t Renderer::RGBAtoHEX(uint8_t red, uint8_t green, uint8_t blue, uint8_t alpha) {
+	auto output = ((red & 0xff) << 24) + ((green & 0xff) << 16) + ((blue & 0xff) << 8)
+		+ (alpha & 0xff);
+	return output;
+}
