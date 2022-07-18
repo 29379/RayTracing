@@ -72,7 +72,7 @@ uint32_t Renderer::PerPixel(glm::vec2 coord) {
 	if (intersections->empty()) {
 		return 0xff000000;
 	}
-
+	
 	glm::vec3 entry = rayOrigin + intersections->front() * rayDirection;
 	glm::vec3 ref(0, 0, -1);
 	glm::vec3 tmp(entry - ref);
@@ -84,20 +84,25 @@ uint32_t Renderer::PerPixel(glm::vec2 coord) {
 	uint8_t red = (uint8_t)(N.x + 1);
 	uint8_t green = (uint8_t)(N.y + 1);
 	uint8_t blue = (uint8_t)(N.z + 1);
-	//return 0xff000000 | (uint8_t)(0.0f * x) | (uint8_t)(255.0f * y) | (uint8_t)(0.0f * z);
-	//return RGBAtoHEX(alpha, red, green, blue);
+	
+	//return 0xff000000 | (uint8_t)(0.0f * red) | (uint8_t)(255.0f * green) | (uint8_t)(0.0f * blue);
+	//return RGBAtoHEX(red, green, blue, alpha);
 	//return 0xffffffff;
 	float t = 0.5f * (rayDirection.y + 1);
 
 	//return 0xffffffff;
 
-	float left = (1 - t) * RGBAtoHEX(1, 1, 1, 1);
-	float right = t * RGBAtoHEX(5, 7, 10, 1);
-	return (uint32_t)(left + right);
+	//unsigned long left = (1 - t) * RGBAtoHEX(0xfa, 0x09, 0xca, 0xff);
+	//unsigned long right = t * RGBAtoHEX(0x05, 0x07, 0x0a, 0xff);
+	//return 0xff000000 | (left + right);
 
 	//return (uint32_t)((1 - t) * RGBAtoHEX(1, 1, 1, 1) + t * RGBAtoHEX(5, 7, 10, 1));
-	//return 0.5f * (RGBAtoHEX(alpha, red, green, blue));
+	//return 255.0f * (RGBAtoHEX(red, green, blue, alpha));
 	//return RGBAtoHEX(255, 99, 71, 0);
+	//unsigned long left = (1 - t) * RGBAtoHEX(red, green, blue, alpha);
+	//unsigned long right = t * RGBAtoHEX(red, green, blue, alpha);
+	//return (1 - t) * RGBAtoHEX(1, 1, 1, 255) + t * RGBAtoHEX(0.5, 0.7, 1.0, 255);
+	return 0.5f * RGBAtoHEX(red, green, blue, alpha);
 }
 
 
@@ -149,8 +154,8 @@ std::list<float>* Renderer::hit_sphere(float radius, const glm::vec3& rayOrigin,
 }
 
 
-uint32_t Renderer::RGBAtoHEX(uint8_t red, uint8_t green, uint8_t blue, uint8_t alpha) {
+unsigned long Renderer::RGBAtoHEX(uint8_t red, uint8_t green, uint8_t blue, uint8_t alpha) {
 	auto output = ((red & 0xff) << 24) + ((green & 0xff) << 16) + ((blue & 0xff) << 8)
-		+ (alpha & 0xff);
+		+ (alpha &0xff);
 	return output;
 }

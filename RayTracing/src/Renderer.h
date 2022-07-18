@@ -20,7 +20,7 @@ public:
 	std::shared_ptr<Walnut::Image> GetFinalImage() const { return finalImage; }
 
 	std::list<float>* hit_sphere(float radius, const glm::vec3& rayOrigin, const glm::vec3& rayDirection);
-	uint32_t RGBAtoHEX(uint8_t red, uint8_t green, uint8_t blue, uint8_t alpha);
+	unsigned long RGBAtoHEX(uint8_t red, uint8_t green, uint8_t blue, uint8_t alpha);
 private:
 	uint32_t PerPixel(glm::vec2 coord);
 private:
