@@ -1,6 +1,21 @@
 #include "Renderer.h"
 
 
+namespace Utils {
+
+	static uint32_t Vec4ToRGBA(const glm::vec4& color) {
+		uint8_t r = (color.r * 255.0f);
+		uint8_t g = (color.g * 255.0f);
+		uint8_t b = (color.b * 255.0f);
+		uint8_t a = (color.a * 255.0f);
+
+		uint32_t output = (a << 24) | (b << 16) | (g << 8) | r;
+		return output;
+	}
+
+}
+
+
 void Renderer::OnResize(uint32_t width, uint32_t height) {
 	if (finalImage) {
 		//	no resize necessary
@@ -32,7 +47,7 @@ void Renderer::Render() {
 		imageData[i] = Walnut::Random::UInt();
 		i dont want the alpha channel to be random, to
 		be sure to always 'see' stuff, so i set
-		the most significant bytes to 265	
+		the most significant bytes to 255	
 		imageData[i] |= 0xff000000;
 	}
 	*/
@@ -48,7 +63,9 @@ void Renderer::Render() {
 			/*	2D x and y coords are flattened as if the y coord is 
 			multiplied by how big each row is, with adding the x column offset
 			which gives me the equivalent of 'i' from a single for loop*/
-			imageData[x + y * finalImage->GetWidth()] = PerPixel(coord);
+			glm::vec4 color = PerPixel(coord);
+			color = glm::clamp(color, glm::vec4(0.0f), glm::vec4(1.0f));
+			imageData[x + y * finalImage->GetWidth()] = Utils::Vec4ToRGBA(color);
 
 		}
 	}
@@ -61,34 +78,58 @@ void Renderer::Render() {
 /*	this method will form the basis of how i decide where
 	to shoot my rays from the camera to see if they intersect
 	with the objects in the scene	*/
-uint32_t Renderer::PerPixel(glm::vec2 coord) {
+glm::vec4 Renderer::PerPixel(glm::vec2 coord) {
 	glm::vec3 rayDirection(coord.x, coord.y, -1.0f);	//	-1 is just a convention for now
-	glm::vec3 rayOrigin(0.0f, 0.0f, 2.0f);	//	camera position
+	glm::vec3 rayOrigin(0.0f, 0.0f, 1.0f);	//	camera position
 	float radius = 0.5f;
 
 	rayDirection = glm::normalize(rayDirection);	//	creates a unit vector
 
-	std::list<float>* intersections = hit_sphere(radius, rayOrigin, rayDirection);
-	if (intersections->empty()) {
-		return 0xff000000;
-	}
-	
-	glm::vec3 entry = rayOrigin + intersections->front() * rayDirection;
-	glm::vec3 ref(0, 0, -1);
-	glm::vec3 tmp(entry - ref);
-	auto N = glm::normalize(tmp);
+	float a = glm::dot(rayDirection, rayDirection);
+	float b = 2.0f * glm::dot(rayOrigin, rayDirection);
+	float c = glm::dot(rayOrigin, rayOrigin) - radius * radius;
+	float delta = b * b - 4.0f * a * c;
 
-	delete intersections;
+	if (delta < 0) {
+		return glm::vec4(0, 0, 0, 1);
+	}
+
+	float entryPointDistance = (-b - glm::sqrt(delta)) / (2.0f * a);
+	float exitPointDistance = (-b + glm::sqrt(delta)) / (2.0f * a);
+
+	//	return glm::vec4(1, 0.3, 0.7, 1);
 	
-	uint8_t alpha = (0xff);
-	uint8_t red = (uint8_t)(N.x + 1);
-	uint8_t green = (uint8_t)(N.y + 1);
-	uint8_t blue = (uint8_t)(N.z + 1);
+	glm::vec3 entryPoint = rayOrigin + entryPointDistance * rayDirection;
+	glm::vec3 exitPoint = rayOrigin + exitPointDistance * rayDirection;
+
+	/*	normal vector; typically it is the effect of normalizing(hitPoint - sphereOrigin),
+	but the sphere origin here is a 0, so it is redundant	*/
+	glm::vec3 normal = glm::normalize(entryPoint);
+
+	glm::vec3 lightDirection = glm::normalize(glm::vec3(-1, -1, -1));
+	float d = glm::max(glm::dot(normal, -lightDirection), 0.0f);		//	d == -cos(angle), cos(> 90) < 0
+
+	//	values of the normal were in <-1; 1>, but the operations with 0.5f pushed it to <0; 1> bounds
+	//glm::vec3 sphereColor = normal * 0.5f + 0.5f;
+	glm::vec3 sphereColor(1, 1, 0);
+	sphereColor *= d;
+
+	return glm::vec4(sphereColor, 1.0f);
+	/*
+	//glm::vec3 ref(0, 0, -1);
+	//glm::vec3 tmp(entryPoint - ref);
+	//auto N = glm::normalize(tmp);
+
+	
+	//uint8_t alpha = (0xff);
+	//uint8_t red = (uint8_t)(N.x + 1);
+	//uint8_t green = (uint8_t)(N.y + 1);
+	//uint8_t blue = (uint8_t)(N.z + 1);
 	
 	//return 0xff000000 | (uint8_t)(0.0f * red) | (uint8_t)(255.0f * green) | (uint8_t)(0.0f * blue);
 	//return RGBAtoHEX(red, green, blue, alpha);
 	//return 0xffffffff;
-	float t = 0.5f * (rayDirection.y + 1);
+	//float t = 0.5f * (rayDirection.y + 1);
 
 	//return 0xffffffff;
 
@@ -102,7 +143,8 @@ uint32_t Renderer::PerPixel(glm::vec2 coord) {
 	//unsigned long left = (1 - t) * RGBAtoHEX(red, green, blue, alpha);
 	//unsigned long right = t * RGBAtoHEX(red, green, blue, alpha);
 	//return (1 - t) * RGBAtoHEX(1, 1, 1, 255) + t * RGBAtoHEX(0.5, 0.7, 1.0, 255);
-	return 0.5f * RGBAtoHEX(red, green, blue, alpha);
+	//return 250.f * RGBAtoHEX(red, green, blue, alpha);
+	*/
 }
 
 
@@ -151,11 +193,4 @@ std::list<float>* Renderer::hit_sphere(float radius, const glm::vec3& rayOrigin,
 		//return 0xff000000 | (greenChannel << 8) | redChannel;*/
 	}
 	return intersections;
-}
-
-
-unsigned long Renderer::RGBAtoHEX(uint8_t red, uint8_t green, uint8_t blue, uint8_t alpha) {
-	auto output = ((red & 0xff) << 24) + ((green & 0xff) << 16) + ((blue & 0xff) << 8)
-		+ (alpha &0xff);
-	return output;
 }

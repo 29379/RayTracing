@@ -22,7 +22,7 @@ public:
 	std::list<float>* hit_sphere(float radius, const glm::vec3& rayOrigin, const glm::vec3& rayDirection);
 	unsigned long RGBAtoHEX(uint8_t red, uint8_t green, uint8_t blue, uint8_t alpha);
 private:
-	uint32_t PerPixel(glm::vec2 coord);
+	glm::vec4 PerPixel(glm::vec2 coord);
 private:
 	/*	i may have more than one image at the same time in 
 		the pipeline, so it will be clear that it is the final buffer*/
