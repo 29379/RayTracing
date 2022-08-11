@@ -40,7 +40,7 @@ void Renderer::OnResize(uint32_t width, uint32_t height) {
 }
 
 
-void Renderer::Render() {
+void Renderer::Render(glm::vec4 colorsSlider, glm::vec3 cameraSlider, glm::vec3 lightSlider) {
 	// rendering the pixels
 	/*
 	for (uint32_t i = 0; i < finalImage->GetWidth() * finalImage->GetHeight(); i++) {
@@ -63,7 +63,7 @@ void Renderer::Render() {
 			/*	2D x and y coords are flattened as if the y coord is 
 			multiplied by how big each row is, with adding the x column offset
 			which gives me the equivalent of 'i' from a single for loop*/
-			glm::vec4 color = PerPixel(coord);
+			glm::vec4 color = PerPixel(coord, colorsSlider, cameraSlider, lightSlider);
 			color = glm::clamp(color, glm::vec4(0.0f), glm::vec4(1.0f));
 			imageData[x + y * finalImage->GetWidth()] = Utils::Vec4ToRGBA(color);
 
@@ -78,9 +78,9 @@ void Renderer::Render() {
 /*	this method will form the basis of how i decide where
 	to shoot my rays from the camera to see if they intersect
 	with the objects in the scene	*/
-glm::vec4 Renderer::PerPixel(glm::vec2 coord) {
+glm::vec4 Renderer::PerPixel(glm::vec2 coord, glm::vec4 colorsSlider, glm::vec3 cameraSlider, glm::vec3 lightSlider) {
 	glm::vec3 rayDirection(coord.x, coord.y, -1.0f);	//	-1 is just a convention for now
-	glm::vec3 rayOrigin(0.0f, 0.0f, 1.0f);	//	camera position
+	glm::vec3 rayOrigin = cameraSlider;	//	camera position
 	float radius = 0.5f;
 
 	rayDirection = glm::normalize(rayDirection);	//	creates a unit vector
@@ -106,15 +106,16 @@ glm::vec4 Renderer::PerPixel(glm::vec2 coord) {
 	but the sphere origin here is a 0, so it is redundant	*/
 	glm::vec3 normal = glm::normalize(entryPoint);
 
-	glm::vec3 lightDirection = glm::normalize(glm::vec3(-1, -1, -1));
+	glm::vec3 lightDirection = glm::normalize(lightSlider);
 	float d = glm::max(glm::dot(normal, -lightDirection), 0.0f);		//	d == -cos(angle), cos(> 90) < 0
 
 	//	values of the normal were in <-1; 1>, but the operations with 0.5f pushed it to <0; 1> bounds
-	//glm::vec3 sphereColor = normal * 0.5f + 0.5f;
-	glm::vec3 sphereColor(1, 1, 0);
+	//	glm::vec3 sphereColor = normal * 0.5f + 0.5f;
+	//glm::vec3 sphereColor(1, 1, 1);
+	glm::vec4 sphereColor = colorsSlider;
 	sphereColor *= d;
 
-	return glm::vec4(sphereColor, 1.0f);
+	return glm::vec4(sphereColor);
 	/*
 	//glm::vec3 ref(0, 0, -1);
 	//glm::vec3 tmp(entryPoint - ref);
