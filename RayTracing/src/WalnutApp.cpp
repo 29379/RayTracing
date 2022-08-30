@@ -4,14 +4,21 @@
 #include "Walnut/Timer.h"
 
 #include "Renderer.h"
+#include "Camera.h"
 
 using namespace Walnut;
 
 class ExampleLayer : public Walnut::Layer
 {
 public:
-	virtual void OnUIRender() override
-	{
+	ExampleLayer()
+		: myCamera(45.0f, 0.1f, 100.0f) {}
+
+	virtual void OnUpdate(float ts) override {
+		myCamera.OnUpdate(ts);
+	}
+	
+	virtual void OnUIRender() override {
 		ImGui::Begin("Settings");
 		ImGui::Text("Last render time: %.3f", lastRenderTime);
 		
@@ -26,16 +33,6 @@ public:
 		ImGui::SliderFloat("Green", &green, 0.0f, 1.0f);
 		ImGui::SliderFloat("Blue", &blue, 0.0f, 1.0f);
 		ImGui::SliderFloat("Alpha", &alpha, 0.0f, 1.0f);
-
-		static float cx = 0.0f;
-		static float cy = 0.0f;
-		static float cz = 1.0f;
-
-		ImGui::Separator();
-		ImGui::Text("Camera location");
-		ImGui::SliderFloat("Camera: x", &cx, -5.0f, 5.0f);
-		ImGui::SliderFloat("Camera: y", &cy, -5.0f, 5.0f);
-		ImGui::SliderFloat("Camera: z", &cz, -5.0f, 5.0f);
 
 		static float lx = -1.0f;
 		static float ly = -1.0f;
@@ -68,24 +65,26 @@ public:
 		ImGui::PopStyleVar();
 		
 		glm::vec4 sphereColor(red, green, blue, alpha);
-		glm::vec3 cameraSlider(cx, cy, cz);
 		glm::vec3 lightSlider(lx, ly, lz);
 
-		// rendering in a loop, inside the app, not only after clicking the button
-		Render(sphereColor, cameraSlider, lightSlider);
+		// rendering in a loop inside the app
+		Render(sphereColor, lightSlider);
 	}
 
-	void Render(glm::vec4 colorSlider, glm::vec3 cameraSlider, glm::vec3 lightSlider) {
+	void Render(glm::vec4 colorSlider, glm::vec3 lightSlider) {
 		Timer timer;
 
 		myRenderer.OnResize(viewportWidth, viewportHeight);
-		myRenderer.Render(colorSlider, cameraSlider, lightSlider);
+		myCamera.OnResize(viewportWidth, viewportHeight);
+		myRenderer.Render(myCamera, colorSlider, lightSlider);
 
 		lastRenderTime = timer.ElapsedMillis();
 	}
 
+
 private:
 	Renderer myRenderer;
+	Camera myCamera;
 	uint32_t viewportWidth = 0;
 	uint32_t viewportHeight = 0;
 
