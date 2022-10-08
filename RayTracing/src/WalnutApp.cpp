@@ -5,6 +5,9 @@
 
 #include "Renderer.h"
 #include "Camera.h"
+#include "Scene.h"
+
+#include <glm/gtc/type_ptr.hpp>
 
 using namespace Walnut;
 
@@ -12,7 +15,23 @@ class ExampleLayer : public Walnut::Layer
 {
 public:
 	ExampleLayer()
-		: myCamera(45.0f, 0.1f, 100.0f) {}
+		: myCamera(45.0f, 0.1f, 100.0f) 
+	{
+		{
+			Sphere sphere;
+			sphere.position = { 0.0f, 0.0f, 0.0f };
+			sphere.albedo = { 1.0f, 1.0f, 1.0f };
+			sphere.radius = 1.0f;
+			myScene.objects.push_back(sphere);
+		}
+		{
+			Sphere sphere;
+			sphere.position = { 1.0f, 0.0f, -5.0f };
+			sphere.albedo = { 0.2f, 0.3f, 1.0f };
+			sphere.radius = 1.5f;
+			myScene.objects.push_back(sphere);
+		}
+	}
 
 	virtual void OnUpdate(float ts) override {
 		myCamera.OnUpdate(ts);
@@ -21,18 +40,8 @@ public:
 	virtual void OnUIRender() override {
 		ImGui::Begin("Settings");
 		ImGui::Text("Last render time: %.3f", lastRenderTime);
-		
-		static float red = 1.0f;
-		static float green = 1.0f;
-		static float blue = 1.0f;
-		static float alpha = 1.0f;
 
 		ImGui::Separator();
-		ImGui::Text("Sphere colors:");
-		ImGui::SliderFloat("Red", &red, 0.0f, 1.0f);
-		ImGui::SliderFloat("Green", &green, 0.0f, 1.0f);
-		ImGui::SliderFloat("Blue", &blue, 0.0f, 1.0f);
-		ImGui::SliderFloat("Alpha", &alpha, 0.0f, 1.0f);
 
 		static float lx = -1.0f;
 		static float ly = -1.0f;
@@ -43,6 +52,19 @@ public:
 		ImGui::SliderFloat("Light source: x", &lx, -5.0f, 5.0f);
 		ImGui::SliderFloat("Light source: y", &ly, -5.0f, 5.0f);
 		ImGui::SliderFloat("Light source: z", &lz, -5.0f, 5.0f);
+
+		ImGui::Separator();
+		for (size_t i = 0; i < myScene.objects.size(); i++) {
+			ImGui::PushID(i);
+
+			Sphere& sphere = myScene.objects[i];
+			ImGui::DragFloat3("Sphere position", glm::value_ptr(sphere.position), 0.1f);
+			ImGui::DragFloat("Sphere radius", &sphere.radius, 0.1f);
+			ImGui::ColorEdit3("Sphere albedo", glm::value_ptr(sphere.albedo));
+
+			ImGui::Separator();
+			ImGui::PopID();
+		}
 
 		ImGui::End();
 
@@ -64,19 +86,18 @@ public:
 		ImGui::End();
 		ImGui::PopStyleVar();
 		
-		glm::vec4 sphereColor(red, green, blue, alpha);
 		glm::vec3 lightSlider(lx, ly, lz);
 
 		// rendering in a loop inside the app
-		Render(sphereColor, lightSlider);
+		Render(lightSlider);
 	}
 
-	void Render(glm::vec4 colorSlider, glm::vec3 lightSlider) {
+	void Render(glm::vec3 lightSlider) {
 		Timer timer;
 
 		myRenderer.OnResize(viewportWidth, viewportHeight);
 		myCamera.OnResize(viewportWidth, viewportHeight);
-		myRenderer.Render(myCamera, colorSlider, lightSlider);
+		myRenderer.Render(myScene, myCamera, lightSlider);
 
 		lastRenderTime = timer.ElapsedMillis();
 	}
@@ -85,6 +106,7 @@ public:
 private:
 	Renderer myRenderer;
 	Camera myCamera;
+	Scene myScene;
 	uint32_t viewportWidth = 0;
 	uint32_t viewportHeight = 0;
 

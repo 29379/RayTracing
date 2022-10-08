@@ -9,6 +9,7 @@
 
 #include "Camera.h"
 #include "Ray.h"
+#include "Scene.h"
 
 
 
@@ -19,10 +20,11 @@ class Renderer
 public:
 	Renderer() = default; // for now
 	void OnResize(uint32_t width, uint32_t height);
-	void Render(const Camera& camera, glm::vec4 colorSlider, glm::vec3 lightSlider);
+	void Render(const Scene& scene, const Camera& camera, glm::vec3 lightSlider);
 	std::shared_ptr<Walnut::Image> GetFinalImage() const { return finalImage; }
-private:
-	glm::vec4 TraceRay(const Ray& ray, glm::vec4 colorSlider, glm::vec3 lightSlider);
+private:	
+	//glm::vec4 TraceRay(const Ray& ray, glm::vec4 colorSlider, glm::vec3 lightSlider);
+	glm::vec4 TraceRay(const Scene& scene, const Ray& ray, glm::vec3 lightSlider);
 private:
 	/*	i may have more than one image at the same time in 
 		the pipeline, so it will be clear that it is the final buffer*/

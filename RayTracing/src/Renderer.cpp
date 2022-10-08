@@ -40,7 +40,7 @@ void Renderer::OnResize(uint32_t width, uint32_t height) {
 }
 
 
-void Renderer::Render(const Camera& camera, glm::vec4 colorSlider, glm::vec3 lightSlider) {
+void Renderer::Render(const Scene& scene, const Camera& camera, glm::vec3 lightSlider) {
 	// rendering the pixels
 	/*
 	for (uint32_t i = 0; i < finalImage->GetWidth() * finalImage->GetHeight(); i++) {
@@ -69,7 +69,7 @@ void Renderer::Render(const Camera& camera, glm::vec4 colorSlider, glm::vec3 lig
 			which gives me the equivalent of 'i' from a single for loop*/
 			ray.direction = camera.GetRayDirections()[x + y * finalImage->GetWidth()];
 
-			glm::vec4 color = TraceRay(ray, colorSlider, lightSlider);
+			glm::vec4 color = TraceRay(scene, ray, lightSlider);
 			color = glm::clamp(color, glm::vec4(0.0f), glm::vec4(1.0f));
 			imageData[x + y * finalImage->GetWidth()] = Utils::Vec4ToRGBA(color);
 
@@ -84,7 +84,7 @@ void Renderer::Render(const Camera& camera, glm::vec4 colorSlider, glm::vec3 lig
 /*	this method will form the basis of how i decide where
 	to shoot my rays from the camera to see if they intersect
 	with the objects in the scene	*/
-glm::vec4 Renderer::TraceRay(const Ray& ray, glm::vec4 colorsSlider, glm::vec3 lightSlider) {
+glm::vec4 Renderer::TraceRay(const Scene& scene, const Ray& ray, glm::vec3 lightSlider) {
 	/*	
 	glm::dot(x, y) - 'iloczyn skalarny' x * y
 		sphere equation:
@@ -103,40 +103,82 @@ glm::vec4 Renderer::TraceRay(const Ray& ray, glm::vec4 colorsSlider, glm::vec3 l
 	intersectios equation:
 		-	(-e +- sqrt(delta)) / (2.0f * d)
 	*/
-	float radius = 0.5f;
-	float sphereOrigin = 0.0f;
+	//	float radius = 0.5f;
+	//	float sphereOrigin = 0.0f;
 
 	//	rayDirection = glm::normalize(rayDirection);	//	creates a unit vector
 
-	float a = glm::dot(ray.direction, ray.direction);
-	float b = 2.0f * glm::dot(ray.origin, ray.direction);
-	float c = glm::dot(ray.origin, ray.origin) - radius * radius;
-	float delta = b * b - 4.0f * a * c;
+	//	float a = glm::dot(ray.direction, ray.direction);
+	//	float b = 2.0f * glm::dot(ray.origin, ray.direction);
+	//	float c = glm::dot(ray.origin, ray.origin) - radius * radius;
+	//	float delta = b * b - 4.0f * a * c;
 
-	if (delta < 0) {
+	if (scene.objects.size() == 0) {
 		auto t = 0.5f * (ray.direction.y + 1);
 		return (1.0f - t) * glm::vec4(1, 1, 1, 1) + t * glm::vec4(0.5, 0.7, 1, 1);
 		//return glm::vec4(0, 0, 0, 1);
 	}
 
-	float entryPointDistance = (-b - glm::sqrt(delta)) / (2.0f * a);
-	float exitPointDistance = (-b + glm::sqrt(delta)) / (2.0f * a);
+	//	float entryPointDistance = (-b - glm::sqrt(delta)) / (2.0f * a);
+	//	float exitPointDistance = (-b + glm::sqrt(delta)) / (2.0f * a);
 
 	//	return glm::vec4(1, 0.3, 0.7, 1);
+
+	const Sphere* closestSphere = nullptr;
+	float closestHit = FLT_MAX;
+
+	for (const Sphere& sphere : scene.objects) {
+		glm::vec3 origin = ray.origin - sphere.position;
+		float a = glm::dot(ray.direction, ray.direction);
+		float b = 2.0f * glm::dot(origin, ray.direction);
+		float c = glm::dot(origin, origin) - sphere.radius * sphere.radius;
+		float delta = b * b - 4.0f * a * c;
+
+		//	nothing is returned here, because even if i dont hit e.g. the first
+		//	sphere, some other might be, so i gotta go along with 
+		//	checking all of them from the scene
+		if (delta < 0.0f) {
+			continue;
+		}
+
+		float entryPointDistance = (-b - glm::sqrt(delta)) / (2.0f * a);
+		//	float exitPointDistance = (-b + glm::sqrt(delta)) / (2.0f * a);
+
+		if (entryPointDistance < closestHit)
+		{
+			closestHit = entryPointDistance;
+			closestSphere = &sphere;
+		}
+	}
+
+	//	if it still is nullptr at this point, there are no intersections
+	if (closestSphere == nullptr) {
+		auto t = 0.5f * (ray.direction.y + 1);
+		return (1.0f - t) * glm::vec4(1, 1, 1, 1) + t * glm::vec4(0.5, 0.7, 1, 1);
+	}
 	
-	glm::vec3 entryPoint = ray.origin + entryPointDistance * ray.direction;
-	glm::vec3 exitPoint = ray.origin + exitPointDistance * ray.direction;
+	glm::vec3 origin = ray.origin - closestSphere->position;
+	glm::vec3 hitPoint = origin + ray.direction * closestHit;
+	glm::vec3 normal = glm::normalize(hitPoint);
 
-	glm::vec3 normal = glm::normalize(entryPoint - sphereOrigin);
+	glm::vec3 lightDirection = glm::normalize(glm::vec3(-1, -1, -1));
+	float d = glm::max(glm::dot(normal, -lightDirection), 0.0f);
+	glm::vec4 sphereColor = {closestSphere->albedo, 1.0f};
 
-	glm::vec3 lightDirection = glm::normalize(lightSlider);
-	float d = glm::max(glm::dot(normal, -lightDirection), 0.0f);		//	d == -cos(angle), cos(> 90) < 0
-	//float d = glm::dot(normal, -lightDirection);
+
+	//	glm::vec3 entryPoint = ray.origin + entryPointDistance * ray.direction;
+	//	glm::vec3 exitPoint = ray.origin + exitPointDistance * ray.direction;
+
+	//	glm::vec3 normal = glm::normalize(entryPoint - sphereOrigin);
+
+	//	glm::vec3 lightDirection = glm::normalize(lightSlider);
+	//	float d = glm::max(glm::dot(normal, -lightDirection), 0.0f);		//	d == -cos(angle), cos(> 90) < 0
+	//	float d = glm::dot(normal, -lightDirection);
 
 	//	values of the normal were in <-1; 1>, but the operations with 0.5f pushed it to <0; 1> bounds
 	//	glm::vec3 sphereColor2 = normal * 0.5f + 0.5f;
 	//	glm::vec4 sphereColor(sphereColor2, 1.0f);
-	glm::vec4 sphereColor = colorsSlider;
+	//	glm::vec4 sphereColor = colorsSlider;
 	sphereColor *= d;
 
 	return glm::vec4(sphereColor);

@@ -83,8 +83,7 @@ void Camera::OnUpdate(float ts)
 				i,j,k - basic quaternions
 			glm::cross(a, b)	-	iloczyn wektorowy a x b
 			glm::angleAxis	-	creating quaternions from an angle and an axis
-			glm::rotate	-	returns quaternion square root
-		*/
+			glm::rotate	-	returns quaternion square root	*/
 		glm::quat q = glm::normalize(glm::cross(glm::angleAxis(-pitchDelta, rightDirection),
 			glm::angleAxis(-yawDelta, glm::vec3(0.f, 1.0f, 0.0f))));
 		m_ForwardDirection = glm::rotate(q, m_ForwardDirection);
