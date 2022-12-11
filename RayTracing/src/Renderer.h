@@ -23,11 +23,29 @@ public:
 	void Render(const Scene& scene, const Camera& camera, glm::vec3 lightSlider);
 	std::shared_ptr<Walnut::Image> GetFinalImage() const { return finalImage; }
 private:	
-	//glm::vec4 TraceRay(const Ray& ray, glm::vec4 colorSlider, glm::vec3 lightSlider);
-	glm::vec4 TraceRay(const Scene& scene, const Ray& ray, glm::vec3 lightSlider);
+
+	struct HitPayload {
+		float hitDistance;
+		glm::vec3 worldPosition;
+		glm::vec3 worldNormal;
+		int objectIndex;
+		//	Sphere* recentlyHitObject;	//	reference to a recently hit sphere
+	};
+
+	glm::vec4 PerPixel(uint32_t x, uint32_t y);	//	the color gets determined here on the basis of the return value of hitDistance in HitPayload from TraceRay
+	HitPayload TraceRay(const Ray& ray);	//	does not return color  now
+
+	/*	if the ray in TraceRay hits something, ClosestHit shader is calledand determines
+		the worldPosition and worldNormal parameters	*/
+	HitPayload ClosestHit(const Ray& ray, float hitDistance, int objectIndex);	
+	HitPayload Miss(const Ray& ray);	//	if the ray in TraceRay misses everythin, this gets called
+
 private:
 	/*	i may have more than one image at the same time in 
 		the pipeline, so it will be clear that it is the final buffer*/
 	std::shared_ptr<Walnut::Image> finalImage;
 	uint32_t* imageData = nullptr;	// buffer of pixel data
+
+	const Scene* activeScene = nullptr;
+	const Camera* activeCamera = nullptr;
 };

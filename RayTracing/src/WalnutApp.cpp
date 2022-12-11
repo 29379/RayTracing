@@ -60,7 +60,7 @@ public:
 			Sphere& sphere = myScene.objects[i];
 			ImGui::DragFloat3("Sphere position", glm::value_ptr(sphere.position), 0.1f);
 			ImGui::DragFloat("Sphere radius", &sphere.radius, 0.1f);
-			ImGui::ColorEdit3("Sphere albedo", glm::value_ptr(sphere.albedo));
+			ImGui::ColorEdit3("Sphere color", glm::value_ptr(sphere.albedo));
 
 			ImGui::Separator();
 			ImGui::PopID();
