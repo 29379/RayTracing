@@ -17,18 +17,27 @@ public:
 	ExampleLayer()
 		: myCamera(45.0f, 0.1f, 100.0f) 
 	{
+
+		Material& firstSphere = myScene.materials.emplace_back();
+		firstSphere.albedo = { 1.0f, 0.0f, 0.0f };
+		firstSphere.roughness = 0.0f;
+
+		Material& secondSphere = myScene.materials.emplace_back();
+		secondSphere.albedo = { 0.2f, 0.3f, 1.0f };
+		secondSphere.roughness = 0.08f;
+
 		{
 			Sphere sphere;
 			sphere.position = { 0.0f, 0.0f, 0.0f };
-			sphere.albedo = { 1.0f, 1.0f, 1.0f };
 			sphere.radius = 1.0f;
+			sphere.materialIndex = 0;
 			myScene.objects.push_back(sphere);
 		}
 		{
 			Sphere sphere;
-			sphere.position = { 1.0f, 0.0f, -5.0f };
-			sphere.albedo = { 0.2f, 0.3f, 1.0f };
-			sphere.radius = 1.5f;
+			sphere.position = { 0.0f, -101.0f, -0.0f };
+			sphere.radius = 100.0f;
+			sphere.materialIndex = 1;
 			myScene.objects.push_back(sphere);
 		}
 	}
@@ -60,7 +69,19 @@ public:
 			Sphere& sphere = myScene.objects[i];
 			ImGui::DragFloat3("Sphere position", glm::value_ptr(sphere.position), 0.1f);
 			ImGui::DragFloat("Sphere radius", &sphere.radius, 0.1f);
-			ImGui::ColorEdit3("Sphere color", glm::value_ptr(sphere.albedo));
+			ImGui::DragInt("Material", &sphere.materialIndex, 1.0f, 0, (int)myScene.materials.size()-1);
+
+			ImGui::Separator();
+			ImGui::PopID();
+		}
+
+		for (size_t i = 0; i < myScene.materials.size(); i++) {
+			ImGui::PushID(i);
+
+			Material& material = myScene.materials[i];
+			ImGui::ColorEdit3("Sphere albedo", glm::value_ptr(material.albedo));
+			ImGui::DragFloat("Roughness", &material.roughness, 0.01f, 0, 1);
+			ImGui::DragFloat("Metallic value", &material.metallic, 0.01f, 0, 1);
 
 			ImGui::Separator();
 			ImGui::PopID();

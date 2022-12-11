@@ -73,11 +73,6 @@ void Renderer::Render(const Scene& scene, const Camera& camera, glm::vec3 lightS
 	finalImage->SetData(imageData);
 }
 
-
-/*	this method will form the basis of how i decide where
-	to shoot my rays from the camera to see if they intersect
-	with the objects in the scene	*/
-
 //glm::vec4 Renderer::TraceRay(const Ray& ray) {
 //	/*	
 //	glm::dot(x, y) - 'iloczyn skalarny' x * y
@@ -178,7 +173,6 @@ void Renderer::Render(const Scene& scene, const Camera& camera, glm::vec3 lightS
 //	return glm::vec4(sphereColor);
 //}
 
-
 glm::vec4 Renderer::PerPixel(uint32_t x, uint32_t y) {
 	Ray ray;
 	ray.origin = activeCamera->GetPosition();
@@ -188,13 +182,14 @@ glm::vec4 Renderer::PerPixel(uint32_t x, uint32_t y) {
 	float multiplier = 1.0f;
 
 	//	bounces are used to make the spheres reflect their image on themselves, kinda like mirrors
-	int bounces = 2;
+	int bounces = 3;
 	for (int i = 0; i < bounces; i++) {
 		Renderer::HitPayload payload = TraceRay(ray);
 
 		if (payload.hitDistance < 0.0f) {
-			glm::vec3 skyColor = glm::vec3(0.0f, 0.0f, 0.0f);
-			color += skyColor * multiplier;
+			//	ambient occlusion? important term for realistic rendering
+			glm::vec3 skyColor = glm::vec3(0.6f, 0.7f, 0.9f);
+			color += skyColor * multiplier; 
 			break;
 		}
 
@@ -202,14 +197,18 @@ glm::vec4 Renderer::PerPixel(uint32_t x, uint32_t y) {
 		float lightIntensity = glm::max(glm::dot(payload.worldNormal, -lightDir), 0.0f); // == cos(angle)
 
 		const Sphere& sphere = activeScene->objects[payload.objectIndex];
-		glm::vec3 sphereColor = sphere.albedo;
+		const Material& material = activeScene->materials[sphere.materialIndex];
+
+		glm::vec3 sphereColor = material.albedo;
 		sphereColor *= lightIntensity;
 		color += sphereColor * multiplier;
 
-		multiplier *= 0.7f;
+		multiplier *= 0.5f;
 
 		ray.origin = payload.worldPosition + payload.worldNormal * 0.0001f;
-		ray.direction = glm::reflect(ray.direction, payload.worldNormal);
+		//	adding random noise to the reflected rays, representing the roughness of a surface
+		ray.direction = glm::reflect(ray.direction, 
+			payload.worldNormal + (material.roughness * Walnut::Random::Vec3(-0.5f, 0.5f)));
 	}
 
 	return glm::vec4(color, 1.0f);
