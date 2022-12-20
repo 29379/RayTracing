@@ -18,10 +18,19 @@
 class Renderer
 {
 public:
+	/*	if its on - we're accumulating samples, if it's off -
+		it will keep bouncing rays every frame without the path tracing part,
+		constructing the scene from scratch every time	*/
+	struct Settings {
+		bool accumulate = true;
+	};
+public:
 	Renderer() = default; // for now
 	void OnResize(uint32_t width, uint32_t height);
 	void Render(const Scene& scene, const Camera& camera, glm::vec3 lightSlider);
 	std::shared_ptr<Walnut::Image> GetFinalImage() const { return finalImage; }
+	void ResetFrameIndex() { frameIndex = 1; }
+	Settings& GetSettings() { return settings; }
 private:	
 
 	struct HitPayload {
@@ -45,6 +54,20 @@ private:
 		the pipeline, so it will be clear that it is the final buffer*/
 	std::shared_ptr<Walnut::Image> finalImage;
 	uint32_t* imageData = nullptr;	// buffer of pixel data
+	
+	/*	buffer of accumulated data, related to path tracing, which will allow to store one,
+		definitive image, instead of rendering new random ray bounces every frame, because it
+		causes a lot of noise when you zoom in - vec4 is 4 floats, so 32 bits per channel, 
+		so i'll basically be able to have HDR, since it is a lot of data.*/
+	glm::vec4* accumulationData = nullptr;	
+
+	/*	moving the camera resets everything - when camera stands still the image will keep
+		tracing paths, but this require the knowledge what frame are we on since we
+		started accumulating data - 1 by default instead of 0, because it will be used
+		to average the paths out with it as the number of evaluated paths, so it's a divider	*/
+	uint32_t frameIndex = 1;
+
+	Settings settings;
 
 	const Scene* activeScene = nullptr;
 	const Camera* activeCamera = nullptr;

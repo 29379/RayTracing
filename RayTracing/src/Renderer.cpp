@@ -37,6 +37,8 @@ void Renderer::OnResize(uint32_t width, uint32_t height) {
 	//	delete nullptr is valid, it will do it internally for me
 	delete[] imageData;
 	imageData = new uint32_t[width * height];
+	delete[] accumulationData;
+	accumulationData = new glm::vec4[width * height];
 }
 
 
@@ -55,22 +57,36 @@ void Renderer::Render(const Scene& scene, const Camera& camera, glm::vec3 lightS
 		imageData[i] |= 0xff000000;
 	}
 	*/
-	float aspectRatio = finalImage->GetWidth() / (float)finalImage->GetHeight();
+	//	float aspectRatio = finalImage->GetWidth() / (float)finalImage->GetHeight();
+
+	//	if it is frame 1 then we have no data, so the buffer has to get cleared all across the image
+	if (frameIndex == 1) {
+		memset(accumulationData, 0, finalImage->GetHeight() * finalImage->GetWidth() * sizeof(glm::vec4));
+	}
 
 	for (uint32_t y = 0; y < finalImage->GetHeight(); y++) {
 		for (uint32_t x = 0; x < finalImage->GetWidth(); x++) {
-
-			PerPixel(x, y);
-
 			glm::vec4 color = PerPixel(x, y);
-			color = glm::clamp(color, glm::vec4(0.0f), glm::vec4(1.0f));
-			imageData[x + y * finalImage->GetWidth()] = Utils::Vec4ToRGBA(color);
+			accumulationData[x + y * finalImage->GetWidth()] += color;	//	doesn't have to be clamped, because accumulationData accepts floats
 
+			//	without normalizing it, the image would become unnaturally bright
+			glm::vec4 accumulatedColor = accumulationData[x + y * finalImage->GetWidth()];
+			accumulatedColor /= (float)frameIndex;
+
+			accumulatedColor = glm::clamp(color, glm::vec4(0.0f), glm::vec4(1.0f));
+			imageData[x + y * finalImage->GetWidth()] = Utils::Vec4ToRGBA(accumulatedColor);
 		}
 	}
 
 	// uploading pixel data to the GPU
 	finalImage->SetData(imageData);
+
+	if (settings.accumulate) {
+		frameIndex++;
+	}
+	else {
+		frameIndex = 1;
+	}
 }
 
 //glm::vec4 Renderer::TraceRay(const Ray& ray) {
@@ -182,7 +198,7 @@ glm::vec4 Renderer::PerPixel(uint32_t x, uint32_t y) {
 	float multiplier = 1.0f;
 
 	//	bounces are used to make the spheres reflect their image on themselves, kinda like mirrors
-	int bounces = 3;
+	int bounces = 5;
 	for (int i = 0; i < bounces; i++) {
 		Renderer::HitPayload payload = TraceRay(ray);
 
@@ -208,7 +224,7 @@ glm::vec4 Renderer::PerPixel(uint32_t x, uint32_t y) {
 		ray.origin = payload.worldPosition + payload.worldNormal * 0.0001f;
 		//	adding random noise to the reflected rays, representing the roughness of a surface
 		ray.direction = glm::reflect(ray.direction, 
-			payload.worldNormal + (material.roughness * Walnut::Random::Vec3(-0.5f, 0.5f)));
+			payload.worldNormal + material.roughness * Walnut::Random::Vec3(-0.5f, 0.5f));
 	}
 
 	return glm::vec4(color, 1.0f);
@@ -229,8 +245,9 @@ Renderer::HitPayload Renderer::TraceRay(const Ray& ray) {
 		// Quadratic forumula discriminant:
 		// b^2 - 4ac
 		float delta = b * b - 4.0f * a * c;
-		if (delta < 0.0f)
+		if (delta < 0.0f) {
 			continue;
+		}
 		// Quadratic formula:
 		// (-b +- sqrt(discriminant)) / 2a
 

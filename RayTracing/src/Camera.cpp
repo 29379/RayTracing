@@ -17,7 +17,7 @@ Camera::Camera(float verticalFOV, float nearClip, float farClip)
 
 /*	ts - time step, helps to scale mouse movement appropriately to how
 	fast the program is running	*/
-void Camera::OnUpdate(float ts)
+bool Camera::OnUpdate(float ts)
 {
 	float mouseSensitivity = 0.002f;
 	glm::vec2 mousePos = Input::GetMousePosition();
@@ -27,7 +27,7 @@ void Camera::OnUpdate(float ts)
 	if (!Input::IsMouseButtonDown(MouseButton::Right))
 	{
 		Input::SetCursorMode(CursorMode::Normal);
-		return;
+		return false;
 	}
 
 	Input::SetCursorMode(CursorMode::Locked);
@@ -96,6 +96,8 @@ void Camera::OnUpdate(float ts)
 		RecalculateView();
 		RecalculateRayDirections();
 	}
+
+	return moved;
 }
 
 void Camera::OnResize(uint32_t width, uint32_t height)

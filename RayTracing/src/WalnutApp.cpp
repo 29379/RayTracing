@@ -43,18 +43,31 @@ public:
 	}
 
 	virtual void OnUpdate(float ts) override {
-		myCamera.OnUpdate(ts);
+		if (myCamera.OnUpdate(ts)) {
+			myRenderer.ResetFrameIndex();
+		}
 	}
 	
 	virtual void OnUIRender() override {
+		static float lx = -1.0f;
+		static float ly = -1.0f;
+		static float lz = -1.0f;
+		glm::vec3 lightSlider(lx, ly, lz);
+
 		ImGui::Begin("Settings");
 		ImGui::Text("Last render time: %.3f", lastRenderTime);
 
 		ImGui::Separator();
 
-		static float lx = -1.0f;
-		static float ly = -1.0f;
-		static float lz = -1.0f;
+		if (ImGui::Button("Render")) {
+			Render(lightSlider);
+		}
+
+		ImGui::Checkbox("Accumulate", &myRenderer.GetSettings().accumulate);
+
+		if (ImGui::Button("Reset")) {
+			myRenderer.ResetFrameIndex();
+		}
 
 		ImGui::Separator();
 		ImGui::Text("Light source location");
@@ -106,8 +119,6 @@ public:
 
 		ImGui::End();
 		ImGui::PopStyleVar();
-		
-		glm::vec3 lightSlider(lx, ly, lz);
 
 		// rendering in a loop inside the app
 		Render(lightSlider);
