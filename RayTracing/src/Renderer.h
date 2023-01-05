@@ -71,4 +71,9 @@ private:
 
 	const Scene* activeScene = nullptr;
 	const Camera* activeCamera = nullptr;
+
+	/*	i'll use these to allow running a parallel multi-threaded std::for_each loop
+		while rendering the image, because now i will have an iterator from a vector	*/
+	std::vector<uint32_t> horizontalIter;
+	std::vector<uint32_t> verticalIter;
 };

@@ -1,5 +1,5 @@
 #include "Renderer.h"
-
+#include <execution>
 
 namespace Utils {
 
@@ -39,6 +39,17 @@ void Renderer::OnResize(uint32_t width, uint32_t height) {
 	imageData = new uint32_t[width * height];
 	delete[] accumulationData;
 	accumulationData = new glm::vec4[width * height];
+
+	horizontalIter.resize(width);
+	verticalIter.resize(height);
+
+	for (uint32_t i = 0; i < width; i++) {
+		horizontalIter[i] = i;
+	}
+	for (uint32_t i = 0; i < height; i++) {
+		verticalIter[i] = i;
+	}
+
 }
 
 
@@ -64,6 +75,30 @@ void Renderer::Render(const Scene& scene, const Camera& camera, glm::vec3 lightS
 		memset(accumulationData, 0, finalImage->GetHeight() * finalImage->GetWidth() * sizeof(glm::vec4));
 	}
 
+/*
+	MT 0	-	~80ms
+	MT 1	-	~40ms
+*/
+#define MT 1
+#if MT
+	std::for_each(std::execution::par, verticalIter.begin(), verticalIter.end(),
+		[this](uint32_t y)
+			{
+				std::for_each(std::execution::par, horizontalIter.begin(), horizontalIter.end(),
+					[this, y](uint32_t x)
+					{
+						glm::vec4 color = PerPixel(x, y);
+						accumulationData[x + y * finalImage->GetWidth()] += color;	//	doesn't have to be clamped, because accumulationData accepts floats
+
+						//	without normalizing it, the image would become unnaturally bright
+						glm::vec4 accumulatedColor = accumulationData[x + y * finalImage->GetWidth()];
+						accumulatedColor /= (float)frameIndex;
+
+						accumulatedColor = glm::clamp(color, glm::vec4(0.0f), glm::vec4(1.0f));
+						imageData[x + y * finalImage->GetWidth()] = Utils::Vec4ToRGBA(accumulatedColor);
+					});
+			});
+#else
 	for (uint32_t y = 0; y < finalImage->GetHeight(); y++) {
 		for (uint32_t x = 0; x < finalImage->GetWidth(); x++) {
 			glm::vec4 color = PerPixel(x, y);
@@ -77,6 +112,7 @@ void Renderer::Render(const Scene& scene, const Camera& camera, glm::vec3 lightS
 			imageData[x + y * finalImage->GetWidth()] = Utils::Vec4ToRGBA(accumulatedColor);
 		}
 	}
+#endif
 
 	// uploading pixel data to the GPU
 	finalImage->SetData(imageData);
