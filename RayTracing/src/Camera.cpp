@@ -12,7 +12,7 @@ Camera::Camera(float verticalFOV, float nearClip, float farClip)
 	: m_VerticalFOV(verticalFOV), m_NearClip(nearClip), m_FarClip(farClip)
 {
 	m_ForwardDirection = glm::vec3(0, 0, -1);
-	m_Position = glm::vec3(0, 0, 3);
+	m_Position = glm::vec3(0, 0, 6);
 }
 
 /*	ts - time step, helps to scale mouse movement appropriately to how
@@ -128,8 +128,8 @@ void Camera::RecalculateProjection()
 void Camera::RecalculateView()
 {
 	/*	glm::lookAt(a, b, c);	a	-	where the camera is at, 
-			b	-	orientation of the camera(direction that it will be facing),
-			c	-	specified up direction	
+								b	-	orientation of the camera(direction that it will be facing),
+								c	-	specified up direction	
 		glm::inverse	-	returns the inverse of a mat2 matrix	*/
 	m_View = glm::lookAt(m_Position, m_Position + m_ForwardDirection, glm::vec3(0, 1, 0));
 	m_InverseView = glm::inverse(m_View);

@@ -23,11 +23,12 @@ public:
 		constructing the scene from scratch every time	*/
 	struct Settings {
 		bool accumulate = true;
+		bool slowRandom = true;
 	};
 public:
 	Renderer() = default; // for now
 	void OnResize(uint32_t width, uint32_t height);
-	void Render(const Scene& scene, const Camera& camera, glm::vec3 lightSlider);
+	void Render(const Scene& scene, const Camera& camera);
 	std::shared_ptr<Walnut::Image> GetFinalImage() const { return finalImage; }
 	void ResetFrameIndex() { frameIndex = 1; }
 	Settings& GetSettings() { return settings; }
@@ -44,7 +45,7 @@ private:
 	glm::vec4 PerPixel(uint32_t x, uint32_t y);	//	the color gets determined here on the basis of the return value of hitDistance in HitPayload from TraceRay
 	HitPayload TraceRay(const Ray& ray);	//	does not return color  now
 
-	/*	if the ray in TraceRay hits something, ClosestHit shader is calledand determines
+	/*	if the ray in TraceRay hits something, ClosestHit shader is called and determines
 		the worldPosition and worldNormal parameters	*/
 	HitPayload ClosestHit(const Ray& ray, float hitDistance, int objectIndex);	
 	HitPayload Miss(const Ray& ray);	//	if the ray in TraceRay misses everythin, this gets called

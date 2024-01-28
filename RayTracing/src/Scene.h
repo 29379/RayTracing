@@ -7,6 +7,12 @@ struct Material {
 	glm::vec3 albedo{ 1.0f };
 	float roughness = 1.0f; //	not smooth, not reflective
 	float metallic = 0.0f;
+
+	//	for emissive materials (light sources):
+	glm::vec3 emissionColor{ 0.0f };
+	float emissionPower = 0.0f;	
+
+	glm::vec3 GetEmission() const { return emissionColor * emissionPower; }
 };
 
 struct Sphere {
@@ -20,7 +26,7 @@ struct Scene {
 	std::vector<Material> materials;
 };
 
-/*	physically - based rendering - a way to standardize parameters to
+/*	physically based rendering - a way to standardize parameters to
 	represent different material behaviors, currently a standard approach
 */
 

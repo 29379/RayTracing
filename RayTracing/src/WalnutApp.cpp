@@ -18,13 +18,20 @@ public:
 		: myCamera(45.0f, 0.1f, 100.0f) 
 	{
 
-		Material& firstSphere = myScene.materials.emplace_back();
-		firstSphere.albedo = { 1.0f, 0.0f, 0.0f };
-		firstSphere.roughness = 0.0f;
+		Material& pinkMaterial = myScene.materials.emplace_back();
+		pinkMaterial.albedo = { 1.0f, 0.0f, 1.0f };
+		pinkMaterial.roughness = 0.0f;
 
-		Material& secondSphere = myScene.materials.emplace_back();
-		secondSphere.albedo = { 0.2f, 0.3f, 1.0f };
-		secondSphere.roughness = 0.08f;
+		Material& blueMaterial = myScene.materials.emplace_back();
+		blueMaterial.albedo = { 0.2f, 0.3f, 1.0f };
+		blueMaterial.roughness = 0.1f;
+
+		Material& orangeMaterial = myScene.materials.emplace_back();
+		orangeMaterial.albedo = { 0.8f, 0.5f, 0.2f };
+		orangeMaterial.roughness = 0.1f;
+		orangeMaterial.emissionColor = orangeMaterial.albedo;
+		orangeMaterial.emissionPower = 2.0f;
+
 
 		{
 			Sphere sphere;
@@ -38,6 +45,13 @@ public:
 			sphere.position = { 0.0f, -101.0f, -0.0f };
 			sphere.radius = 100.0f;
 			sphere.materialIndex = 1;
+			myScene.objects.push_back(sphere);
+		}
+		{
+			Sphere sphere;
+			sphere.position = { 2.5f, 0.0f, 0.0f };
+			sphere.radius = 1.0f;
+			sphere.materialIndex = 2;
 			myScene.objects.push_back(sphere);
 		}
 	}
@@ -60,20 +74,15 @@ public:
 		ImGui::Separator();
 
 		if (ImGui::Button("Render")) {
-			Render(lightSlider);
+			Render();
 		}
 
 		ImGui::Checkbox("Accumulate", &myRenderer.GetSettings().accumulate);
+		ImGui::Checkbox("Slow Random", &myRenderer.GetSettings().slowRandom);
 
 		if (ImGui::Button("Reset")) {
 			myRenderer.ResetFrameIndex();
 		}
-
-		ImGui::Separator();
-		ImGui::Text("Light source location");
-		ImGui::SliderFloat("Light source: x", &lx, -5.0f, 5.0f);
-		ImGui::SliderFloat("Light source: y", &ly, -5.0f, 5.0f);
-		ImGui::SliderFloat("Light source: z", &lz, -5.0f, 5.0f);
 
 		ImGui::Separator();
 		for (size_t i = 0; i < myScene.objects.size(); i++) {
@@ -95,6 +104,8 @@ public:
 			ImGui::ColorEdit3("Sphere albedo", glm::value_ptr(material.albedo));
 			ImGui::DragFloat("Roughness", &material.roughness, 0.01f, 0, 1);
 			ImGui::DragFloat("Metallic value", &material.metallic, 0.01f, 0, 1);
+			ImGui::DragFloat("Emission Color", glm::value_ptr(material.emissionColor));
+			ImGui::DragFloat("Emission Power", &material.emissionPower, 0.05f, 0.0f, FLT_MAX);
 
 			ImGui::Separator();
 			ImGui::PopID();
@@ -121,15 +132,15 @@ public:
 		ImGui::PopStyleVar();
 
 		// rendering in a loop inside the app
-		Render(lightSlider);
+		Render();
 	}
 
-	void Render(glm::vec3 lightSlider) {
+	void Render() {
 		Timer timer;
 
 		myRenderer.OnResize(viewportWidth, viewportHeight);
 		myCamera.OnResize(viewportWidth, viewportHeight);
-		myRenderer.Render(myScene, myCamera, lightSlider);
+		myRenderer.Render(myScene, myCamera);
 
 		lastRenderTime = timer.ElapsedMillis();
 	}
